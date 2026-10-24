@@ -266,3 +266,14 @@ cosign verify-blob --bundle "${n}_${v}_checksums.txt.sigstore.json" \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com "${n}_${v}_checksums.txt"
 grep linux_amd64.tar.gz "${n}_${v}_checksums.txt"
 ```
+
+## Outlook
+
+The alert rule uses two exploitation signals: the CISA KEV catalog and EPSS. A third signal could be added later: a public exploit or detection template exists for a CVE. Two sources publish this data in a machine-readable form:
+
+- [Metasploit](https://github.com/rapid7/metasploit-framework): `db/modules_metadata_base.json` lists the CVE references of every module.
+- [Nuclei templates](https://github.com/projectdiscovery/nuclei-templates): `cves.json` lists every CVE that has a template.
+
+The gap that these sources close is small. Critical findings already alert at any EPSS score, and EPSS uses Metasploit and Nuclei as model inputs. The signal would mainly affect `high` findings with an EPSS score below `alert-epss` that are not in the KEV catalog. Many CVEs in that group are for WordPress plugins and network devices, which compose images rarely contain.
+
+A possible design is a boolean field `exploit` in `findings.jsonl`, next to `kev`. As a first step, the summary and the dashboard would sort by it after KEV and end-of-life distributions, without a change to the alert rule. Real scans would then show whether it is worth an alert of its own. The trade-off is two more downloads per run. They cannot be pinned, because a pinned copy of an exploit list goes out of date.
