@@ -70,7 +70,7 @@ GitHub sends the failure notification of a scheduled run to the user who last ch
 | `vex-file` | `sbom/vex.json` | OpenVEX document, see "Triage With VEX" |
 | `data-branch` | `sbom-data` | Branch that stores the SBOMs and scan results |
 | `project` | repository name | Project name in InfluxDB and the webhook payload |
-| `influx-url` | | InfluxDB 2 base URL, for example `https://host:8086` |
+| `influx-url` | | InfluxDB base URL, for example `https://host:8086` |
 | `influx-org` | | InfluxDB organization |
 | `influx-bucket` | `sbom` | InfluxDB bucket |
 
@@ -163,9 +163,27 @@ Write the reasoning into `impact_statement`, and set `timestamp` to the date of 
 
 Ignore rules in `.grype.yaml` in the root of the calling repository also apply, because grype reads this file automatically. Matches that an ignore rule removes do not appear in `findings.jsonl`.
 
+### Triage With an Agent
+
+The directory `skills/sbom-triage` holds a skill for coding agents such as Claude Code. With the skill, an agent loads the latest results from the data branch, researches each open alert, and checks how the services in the compose files use the vulnerable package. For each alert, it then proposes an image update, writes a `not_affected` statement into the VEX document, or leaves the alert open with the reasons. It does not commit or push.
+
+Install the skill into the calling repository using:
+
+```sh
+npx skills add https://github.com/RandomByte/compose-sbom/tree/main/skills/sbom-triage
+```
+
+Example tasks:
+
+- "Triage the new alerts of the last SBOM scan."
+- "Is CVE-2025-1094 in postgres relevant for us?"
+- "Review sbom/vex.json against the latest findings."
+
+Review the statements before you commit them. A statement silences its alerts for as long as it matches.
+
 ## Grafana Dashboard
 
-If the input `influx-url` is set, the workflow writes the results of every run to InfluxDB 2 with `sbom.sh influx`. `grafana-dashboard.json` shows these results:
+If the input `influx-url` is set, the workflow writes the results of every run to InfluxDB with `sbom.sh influx`. `grafana-dashboard.json` shows these results:
 
 - Counts with trends
 - The images with their severity counts

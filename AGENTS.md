@@ -6,11 +6,12 @@ This file provides guidance to coding agents when working with code in this repo
 
 compose-sbom is a reusable GitHub Actions workflow plus one Bash script. Other repositories call `.github/workflows/scan.yml`. The workflow runs `sbom.sh` to create a CycloneDX SBOM (syft) for every image in their compose files, scan the SBOMs (grype), and commit the results to a data branch of the calling repository. README.md is the user-facing documentation and describes every input, file format and alert rule in detail.
 
-There is no build step and no test suite. The repository has three code artifacts:
+There is no build step and no test suite. The repository has four artifacts:
 
 - `sbom.sh`: all logic, as subcommands `generate`, `scan`, `notify`, `influx`, `find`.
 - `.github/workflows/scan.yml`: the reusable workflow that calls `sbom.sh`.
 - `grafana-dashboard.json`: Flux queries over the InfluxDB points that `sbom.sh influx` writes.
+- `skills/sbom-triage/`: an agent skill that calling repositories copy, to triage findings and write VEX statements. It must work without this repository, so it repeats the data branch layout, the `findings.jsonl` schema and the VEX matching rules.
 
 ## Lint Commands
 
@@ -44,6 +45,8 @@ Most logic is jq programs held in shell variables and combined at call sites:
 - `ALERTING` is a library of jq `def`s (`alerting`, `alert_worthy`, `suppressed`, `grouped`, `priority`, `key`). Callers prepend it to their own program, as in `"$ALERTING"'...'`, and must pass `"${ALERT_ARGS[@]}"`, which `alert_args` sets and validates.
 
 The alert rule lives only in `ALERTING`, and `scan`, `write_summary` and `influx` all reuse it. Change it there, and keep README.md "Alerts" in sync.
+
+When changing `EXTRACT`, `VEX_APPLY`, the section names of `summary.md`, the data branch layout or a workflow input that the skill reads, update `skills/sbom-triage/SKILL.md` and `skills/sbom-triage/references/vex.md` as well. The skill reads the open alerts from `summary.md` on purpose, so it does not repeat the alert rule.
 
 Key behaviors that span several functions:
 
