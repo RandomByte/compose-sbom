@@ -1,0 +1,12 @@
+{
+  "matches": [
+    {
+      "vulnerability": {"id": "CVE-2026-1000", "severity": "Low"},
+      "artifact": {"name": "libfoo", "version": "1.2.3", "type": "apk"}
+    }
+  ],
+  "alertsByPackage": [
+    {"alerts": [{"type": "distro-eol", "metadata": {"name": "alpine", "version": "3.18"}}]},
+    {"alerts": [{"type": "distro-eol", "metadata": {"name": "alpine", "version": "3.18"}}]}
+  ]
+}

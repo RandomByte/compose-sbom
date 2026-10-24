@@ -390,6 +390,9 @@ cmd_find() {
 		done | column -t -s $'\t'
 }
 
+# tests/run.sh sources this file to call the jq programs and functions.
+[[ ${BASH_SOURCE[0]} == "$0" ]] || return 0
+
 case ${1:-} in
 generate | scan | notify | influx | find)
 	cmd=$1

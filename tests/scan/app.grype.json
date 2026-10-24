@@ -1,0 +1,40 @@
+{
+  "matches": [
+    {
+      "vulnerability": {"id": "GHSA-aaaa-bbbb-cccc", "severity": "Critical", "epss": [{"epss": 0.01}, {"epss": 0.02}], "fix": {"versions": ["1.2.4", "2.0.1"]}},
+      "relatedVulnerabilities": [{"id": "CVE-2026-1000"}, {"id": "GHSA-aaaa-bbbb-cccc"}],
+      "artifact": {"name": "libfoo", "version": "1.2.3", "type": "deb"}
+    },
+    {
+      "vulnerability": {"id": "CVE-2026-2000", "severity": "High", "epss": [{"epss": 0.3}]},
+      "artifact": {"name": "openssl", "version": "3.0.1", "type": "deb"}
+    },
+    {
+      "vulnerability": {"id": "CVE-2026-3000", "severity": "High", "epss": [{"epss": 0.12}]},
+      "artifact": {"name": "zlib", "version": "1.2.13", "type": "deb"}
+    },
+    {
+      "vulnerability": {"id": "CVE-2026-4000", "severity": "High", "epss": [{"epss": 0.12}]},
+      "artifact": {"name": "curl", "version": "8.0.0", "type": "deb"}
+    },
+    {
+      "vulnerability": {"id": "CVE-2026-5000", "severity": "High", "epss": [{"epss": 0.15}], "fix": {"versions": ["120.1"]}},
+      "artifact": {"name": "chromium", "version": "120.0", "type": "deb"}
+    },
+    {
+      "vulnerability": {"id": "CVE-2026-5000", "severity": "Critical", "epss": [{"epss": 0.04}], "knownExploited": [{"cve": "CVE-2026-5000"}], "fix": {"versions": ["120.1"]}},
+      "artifact": {"name": "chromium-common", "version": "120.0", "type": "deb"}
+    },
+    {
+      "vulnerability": {"id": "CVE-2026-6000", "severity": "Critical", "epss": []},
+      "artifact": {"name": "libbar", "version": "2.0", "type": "deb"}
+    },
+    {
+      "vulnerability": {"id": "CVE-2026-7000", "severity": "Medium", "epss": [{"epss": 0.9}]},
+      "artifact": {"name": "libbaz", "version": "0.1", "type": "deb"}
+    }
+  ],
+  "alertsByPackage": [
+    {"alerts": [{"type": "distro-eol", "metadata": {"name": "ubuntu", "version": ""}}]}
+  ]
+}

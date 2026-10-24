@@ -249,6 +249,10 @@ jq -c 'select(.severity == "critical" and .fix != "")' sbom/data/findings.jsonl
 - `sbom.sh` does not resolve compose variables. It skips image references with variables such as `${TAG}` and prints a warning.
 - syft detects compiled binaries only for runtimes that it has a classifier for. grype matches these binaries by CPE, and CPE matching can cause false positives.
 
+## Tests
+
+`tests/run.sh` tests `sbom.sh` with jq only, without syft, grype or Docker. `.github/workflows/test.yml` runs it with the linters on every pull request. AGENTS.md describes the structure of the tests.
+
 ## Releases
 
 Each release is a tag `vX.Y.Z` on `main`. Calling repositories pin the commit SHA of the tag. The reusable workflow checks out this repository at the same commit (`job.workflow_sha`), so the workflow and `sbom.sh` always match.

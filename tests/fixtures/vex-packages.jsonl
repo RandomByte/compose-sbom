@@ -1,0 +1,6 @@
+{"image":"telegraf:1.40.2","id":"GO-2026-6612","aliases":["CVE-2026-78663"],"package":"golang.org/x/net","version":"v0.59.0"}
+{"image":"telegraf:1.40.2","id":"GO-2026-6612","aliases":["CVE-2026-78663"],"package":"net","version":"v0.59.0"}
+{"image":"telegraf:1.40.2","id":"GO-2026-6612","aliases":["CVE-2026-78663"],"package":"stdlib","version":"go1.25.1"}
+{"image":"telegraf:1.40.2","id":"GO-2026-6612","aliases":["CVE-2026-78663"],"package":"nginx","version":"1.22.1-9+deb12u10"}
+{"image":"telegraf:1.40.2","id":"GO-2026-6612","aliases":["CVE-2026-78663"],"package":"@langchain/redis","version":"1.0.0"}
+{"image":"telegraf:1.40.2","id":"GO-2026-6612","aliases":["CVE-2026-78663"],"package":"redis","version":"1.0.0"}

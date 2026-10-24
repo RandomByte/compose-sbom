@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# Replaces grype in the tests. "grype sbom:FILE" prints FILE, so the tests
+# put a grype JSON report where sbom.sh expects the SBOM.
+case $1 in
+db) [[ $2 != status ]] || echo '{"built":"2026-10-01T00:00:00Z"}' ;;
+version) echo '{"version":"0.0.0-test"}' ;;
+sbom:*) cat "${1#sbom:}" ;;
+*)
+	echo "grype stub: unexpected arguments: $*" >&2
+	exit 1
+	;;
+esac

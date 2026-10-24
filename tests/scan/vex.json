@@ -1,0 +1,17 @@
+{
+  "@context": "https://openvex.dev/ns/v0.2.0",
+  "statements": [
+    {
+      "vulnerability": {"name": "CVE-2026-6000"},
+      "products": [{"@id": "app", "subcomponents": [{"@id": "libbar"}]}],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_present"
+    },
+    {
+      "vulnerability": {"name": "CVE-2026-2000"},
+      "products": [{"identifiers": {"purl": "pkg:oci/app"}}],
+      "status": "not_affected",
+      "justification": "component_not_present"
+    }
+  ]
+}

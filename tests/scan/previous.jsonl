@@ -1,0 +1,4 @@
+{"image":"app:1.0","id":"CVE-2026-2000","aliases":[],"severity":"high","kev":false,"epss":0.3,"package":"openssl","version":"3.0.1","type":"deb","fix":""}
+{"image":"app:1.0","id":"CVE-2026-3000","aliases":[],"severity":"high","kev":false,"epss":0.08,"package":"zlib","version":"1.2.13","type":"deb","fix":""}
+{"image":"app:1.0","id":"CVE-2026-4000","aliases":[],"severity":"high","kev":false,"epss":0.03,"package":"curl","version":"8.0.0","type":"deb","fix":""}
+{"image":"app:1.0","id":"CVE-2026-0001","aliases":[],"severity":"critical","kev":false,"epss":0,"package":"libold","version":"1.0","type":"deb","fix":"1.1"}

@@ -1,0 +1,4 @@
+{
+  "app:1.0": {"digest": "sha256:aaaa", "file": "sboms/app.json"},
+  "db:2": {"digest": "sha256:bbbb", "file": "sboms/db.json"}
+}

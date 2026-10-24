@@ -1,0 +1,4 @@
+{"aliases":["CVE-2026-1000"],"epss":0.02,"fix":"1.2.4, 2.0.1","id":"GHSA-aaaa-bbbb-cccc","image":"app:1.0","kev":false,"package":"libfoo","severity":"critical","type":"deb","version":"1.2.3"}
+{"aliases":[],"epss":0,"fix":"","id":"distro-eol","image":"db:2","kev":false,"package":"alpine","severity":"eol","type":"distro","version":"3.18"}
+{"aliases":[],"epss":0.12,"fix":"","id":"CVE-2026-4000","image":"app:1.0","kev":false,"package":"curl","severity":"high","type":"deb","version":"8.0.0"}
+{"aliases":[],"epss":0.15,"fix":"120.1","id":"CVE-2026-5000","image":"app:1.0","kev":true,"package":"chromium, chromium-common","severity":"critical","type":"deb","version":"120.0"}

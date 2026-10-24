@@ -1,0 +1,13 @@
+{"image":"app:1","id":"critical","severity":"critical","kev":false,"epss":0.01}
+{"image":"app:1","id":"high-epss-below","severity":"high","kev":false,"epss":0.09}
+{"image":"app:1","id":"high-epss-at","severity":"high","kev":false,"epss":0.1}
+{"image":"app:1","id":"medium-epss","severity":"medium","kev":false,"epss":0.9}
+{"image":"app:1","id":"low-kev","severity":"low","kev":true,"epss":0.2}
+{"image":"app:1","id":"unknown-kev","severity":"unknown","kev":true,"epss":0.3}
+{"image":"app:1","id":"unknown","severity":"unknown","kev":false,"epss":0}
+{"image":"app:1","id":"negligible","severity":"negligible","kev":false,"epss":0}
+{"image":"app:1","id":"eol","severity":"eol","kev":false,"epss":0}
+{"image":"app:1","id":"critical-not-affected","severity":"critical","kev":false,"epss":0,"vex":"not_affected"}
+{"image":"app:1","id":"critical-fixed","severity":"critical","kev":false,"epss":0,"vex":"fixed"}
+{"image":"app:1","id":"critical-affected","severity":"critical","kev":false,"epss":0.05,"vex":"affected"}
+{"image":"app:1","id":"critical-under-investigation","severity":"critical","kev":false,"epss":0,"vex":"under_investigation"}

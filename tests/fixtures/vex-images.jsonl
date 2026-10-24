@@ -1,0 +1,5 @@
+{"image":"postgres:18.6","id":"GO-2026-6612","aliases":[],"package":"libfoo","version":"1.0"}
+{"image":"postgres:18.7","id":"GO-2026-6612","aliases":[],"package":"libfoo","version":"1.0"}
+{"image":"docker.io/library/postgres:18.6","id":"GO-2026-6612","aliases":[],"package":"libfoo","version":"1.0"}
+{"image":"localhost:5000/app:1.0","id":"GO-2026-6612","aliases":[],"package":"libfoo","version":"1.0"}
+{"image":"ghcr.io/owner/app@sha256:1111","id":"GO-2026-6612","aliases":[],"package":"libfoo","version":"1.0"}

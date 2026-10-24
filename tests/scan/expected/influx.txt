@@ -1,0 +1,9 @@
+sbom_scan,project=test images=2i,findings=10i,alerts=6i,new_alerts=4i,kev=1i,eol=1i,suppressed=1i TIME
+sbom_image,project=test,image=app:1.0 critical=3i,high=4i,medium=1i,low=0i,alerts=5i,kev=1i,eol=0i,eol_distro="",components=0i TIME
+sbom_image,project=test,image=db:2 critical=0i,high=0i,medium=0i,low=1i,alerts=1i,kev=0i,eol=1i,eol_distro="alpine 3.18",components=0i TIME
+sbom_alert,project=test,image=app:1.0,id=CVE-2026-2000 severity="high",kev=false,epss=0.3,new=false,packages="openssl",versions="3.0.1",fix="",aliases="" TIME
+sbom_alert,project=test,image=app:1.0,id=CVE-2026-3000 severity="high",kev=false,epss=0.12,new=false,packages="zlib",versions="1.2.13",fix="",aliases="" TIME
+sbom_alert,project=test,image=app:1.0,id=CVE-2026-4000 severity="high",kev=false,epss=0.12,new=true,packages="curl",versions="8.0.0",fix="",aliases="" TIME
+sbom_alert,project=test,image=app:1.0,id=CVE-2026-5000 severity="critical",kev=true,epss=0.15,new=true,packages="chromium, chromium-common",versions="120.0",fix="120.1",aliases="" TIME
+sbom_alert,project=test,image=app:1.0,id=GHSA-aaaa-bbbb-cccc severity="critical",kev=false,epss=0.02,new=true,packages="libfoo",versions="1.2.3",fix="1.2.4, 2.0.1",aliases="CVE-2026-1000" TIME
+sbom_alert,project=test,image=db:2,id=distro-eol severity="eol",kev=false,epss=0,new=true,packages="alpine",versions="3.18",fix="",aliases="" TIME

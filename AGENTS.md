@@ -6,23 +6,38 @@ This file provides guidance to coding agents when working with code in this repo
 
 compose-sbom is a reusable GitHub Actions workflow plus one Bash script. Other repositories call `.github/workflows/scan.yml`. The workflow runs `sbom.sh` to create a CycloneDX SBOM (syft) for every image in their compose files, scan the SBOMs (grype), and commit the results to a data branch of the calling repository. README.md is the user-facing documentation and describes every input, file format and alert rule in detail.
 
-There is no build step and no test suite. The repository has four artifacts:
+There is no build step. The repository has these artifacts:
 
 - `sbom.sh`: all logic, as subcommands `generate`, `scan`, `notify`, `influx`, `find`.
 - `.github/workflows/scan.yml`: the reusable workflow that calls `sbom.sh`.
+- `.github/workflows/test.yml`: runs the tests and the linters on pushes to `main` and on pull requests.
+- `tests/`: the test suite for `sbom.sh`, see "Tests".
 - `grafana-dashboard.json`: Flux queries over the InfluxDB points that `sbom.sh influx` writes.
 - `skills/sbom-triage/`: an agent skill that calling repositories copy, to triage findings and write VEX statements. It must work without this repository, so it repeats the data branch layout, the `findings.jsonl` schema and the VEX matching rules.
 
 ## Lint Commands
 
 ```sh
-shellcheck sbom.sh
-shfmt -d sbom.sh          # default shfmt style: tabs, case labels not indented
-actionlint
-zizmor .github/workflows/scan.yml
+shellcheck sbom.sh tests/run.sh tests/bin/grype
+shfmt -d sbom.sh tests/run.sh tests/bin/grype   # default shfmt style: tabs, case labels not indented
+actionlint -ignore 'property "workflow_(repository|sha)" is not defined'
+zizmor .github/workflows
 ```
 
-`actionlint` currently reports `property "workflow_repository" is not defined` and the same for `workflow_sha` on `job.*`. These are false positives: actionlint does not know these context properties yet. All other linters pass clean.
+The `-ignore` of `actionlint` suppresses false positives for `job.workflow_repository` and `job.workflow_sha`: actionlint does not know these context properties yet. `.shellcheckrc` sets `external-sources=true`, so shellcheck follows the `source` of `sbom.sh` in `tests/run.sh`. `.github/workflows/test.yml` runs the same commands with pinned versions.
+
+## Tests
+
+```sh
+tests/run.sh
+```
+
+The tests need only bash and jq. `tests/run.sh` sources `sbom.sh`, which returns before its `case` statement when it is sourced, and calls `VEX_APPLY`, `ALERTING` and `alert_args` directly. For `sbom.sh scan` and `sbom.sh influx`, `tests/bin/grype` replaces grype: it prints the file of `grype sbom:FILE`, so the data directory holds grype JSON reports in place of SBOMs.
+
+- VEX matching and the alert rule are table tests in `tests/run.sh` over the findings in `tests/fixtures/`.
+- `tests/scan/` holds one scan scenario: the grype reports of two images, the previous `findings.jsonl` and a VEX document. `tests/scan/expected/` holds the expected `findings.jsonl`, `new.jsonl`, `summary.md` and the InfluxDB line protocol with `TIME` for the timestamp.
+
+When a change to `sbom.sh` changes the scan output on purpose, run `SBOM_TEST_UPDATE=1 tests/run.sh` and review the diff of `tests/scan/expected/`. The expected `summary.md` and `influx.txt` are contracts with the skill and with `grafana-dashboard.json`. When `pkg_match` or `image_match` changes, add rows to the tables in `tests/run.sh`.
 
 ## Running Locally
 

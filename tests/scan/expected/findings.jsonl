@@ -1,0 +1,10 @@
+{"aliases":["CVE-2026-1000"],"epss":0.02,"fix":"1.2.4, 2.0.1","id":"GHSA-aaaa-bbbb-cccc","image":"app:1.0","kev":false,"package":"libfoo","severity":"critical","type":"deb","version":"1.2.3"}
+{"aliases":[],"epss":0,"fix":"","id":"CVE-2026-1000","image":"db:2","kev":false,"package":"libfoo","severity":"low","type":"apk","version":"1.2.3"}
+{"aliases":[],"epss":0,"fix":"","id":"CVE-2026-6000","image":"app:1.0","kev":false,"package":"libbar","severity":"critical","type":"deb","version":"2.0","vex":"not_affected","vex_justification":"vulnerable_code_not_present"}
+{"aliases":[],"epss":0,"fix":"","id":"distro-eol","image":"db:2","kev":false,"package":"alpine","severity":"eol","type":"distro","version":"3.18"}
+{"aliases":[],"epss":0.04,"fix":"120.1","id":"CVE-2026-5000","image":"app:1.0","kev":true,"package":"chromium-common","severity":"critical","type":"deb","version":"120.0"}
+{"aliases":[],"epss":0.12,"fix":"","id":"CVE-2026-3000","image":"app:1.0","kev":false,"package":"zlib","severity":"high","type":"deb","version":"1.2.13"}
+{"aliases":[],"epss":0.12,"fix":"","id":"CVE-2026-4000","image":"app:1.0","kev":false,"package":"curl","severity":"high","type":"deb","version":"8.0.0"}
+{"aliases":[],"epss":0.15,"fix":"120.1","id":"CVE-2026-5000","image":"app:1.0","kev":false,"package":"chromium","severity":"high","type":"deb","version":"120.0"}
+{"aliases":[],"epss":0.3,"fix":"","id":"CVE-2026-2000","image":"app:1.0","kev":false,"package":"openssl","severity":"high","type":"deb","version":"3.0.1"}
+{"aliases":[],"epss":0.9,"fix":"","id":"CVE-2026-7000","image":"app:1.0","kev":false,"package":"libbaz","severity":"medium","type":"deb","version":"0.1"}
