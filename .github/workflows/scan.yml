@@ -1,0 +1,274 @@
+name: SBOM scan
+
+# Reusable workflow. Creates an SBOM for every image in the compose files of
+# the calling repository, scans the SBOMs and commits the results to its data
+# branch. The run fails when it finds new alerting findings, so GitHub sends a
+# failure notification. README.md describes the setup.
+
+on:
+  workflow_call:
+    inputs:
+      compose-files:
+        description: Compose files, separated by whitespace
+        type: string
+        default: docker-compose.yml
+      exclude:
+        description: Extended regular expression of image references to skip
+        type: string
+        default: ""
+      extra-images:
+        description: More image references to scan, separated by whitespace
+        type: string
+        default: ""
+      alert-severity:
+        description: Lowest severity that alerts
+        type: string
+        default: critical
+      alert-epss:
+        description: EPSS from which high findings alert
+        type: string
+        default: "0.1"
+      platform:
+        description: Image platform to analyze
+        type: string
+        default: linux/amd64
+      vex-file:
+        description: OpenVEX document in the calling repository
+        type: string
+        default: sbom/vex.json
+      data-branch:
+        description: Branch that stores the SBOMs and scan results
+        type: string
+        default: sbom-data
+      project:
+        description: Project name in InfluxDB and the webhook payload (default is the repository name)
+        type: string
+        default: ""
+      influx-url:
+        description: InfluxDB 2 base URL. Without it, the results are not written to InfluxDB.
+        type: string
+        default: ""
+      influx-org:
+        description: InfluxDB organization
+        type: string
+        default: ""
+      influx-bucket:
+        description: InfluxDB bucket
+        type: string
+        default: sbom
+    secrets:
+      DOCKERHUB_USERNAME:
+        required: false
+      DOCKERHUB_TOKEN:
+        description: Read-only Docker Hub access token, against the limit of anonymous pulls
+        required: false
+      SBOM_INFLUX_TOKEN:
+        description: InfluxDB token with write access to the bucket
+        required: false
+      SBOM_ALERT_WEBHOOK_URL:
+        description: URL that receives new alerts as a JSON POST
+        required: false
+    outputs:
+      new-alerts:
+        description: Number of new alerts, empty if the scan did not run
+        value: ${{ jobs.scan.outputs.new }}
+
+permissions: {}
+
+env:
+  SBOM_DATA_BRANCH: ${{ inputs.data-branch }}
+  SBOM_ALERT_SEVERITY: ${{ inputs.alert-severity }}
+  SBOM_ALERT_EPSS: ${{ inputs.alert-epss }}
+  SBOM_PROJECT: ${{ inputs.project }}
+  # Hashes from the release checksum files, after verification of their
+  # Sigstore bundles with cosign.
+  SYFT_VERSION: 1.55.0
+  SYFT_SHA256: bb65249542db5fedeeb4d3f9b018b75e7264dbfbbb10486f044581a92f90490d
+  GRYPE_VERSION: 0.121.0
+  GRYPE_SHA256: 64e07133d3486115de647a66581461dccf5c732748a0a3119077395565f15519
+
+jobs:
+  scan:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      packages: read
+    outputs:
+      scanned: ${{ steps.scan.outputs.scanned }}
+      new: ${{ steps.scan.outputs.new }}
+    env:
+      SBOM_DATA_DIR: ${{ github.workspace }}/sbom-data
+      SBOM_TOOL_DIR: ${{ github.workspace }}/.compose-sbom
+    steps:
+      # The calling repository. The read-only token stays in .git/config to
+      # fetch the data branch. docker login stores the same token anyway.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: true # zizmor: ignore[artipacked]
+
+      # This repository at the commit that the caller pinned. Runs after the
+      # first checkout, which cleans the workspace.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          path: .compose-sbom
+          persist-credentials: false
+
+      - name: Install syft and grype
+        run: |
+          mkdir -p "$RUNNER_TEMP/bin"
+          install_tool() {
+            local tarball="${1}_${2}_linux_amd64.tar.gz"
+            curl -fsSLo "$RUNNER_TEMP/$tarball" "https://github.com/anchore/$1/releases/download/v$2/$tarball"
+            echo "$3  $RUNNER_TEMP/$tarball" | sha256sum -c -
+            tar -xzf "$RUNNER_TEMP/$tarball" -C "$RUNNER_TEMP/bin" "$1"
+          }
+          install_tool syft "$SYFT_VERSION" "$SYFT_SHA256"
+          install_tool grype "$GRYPE_VERSION" "$GRYPE_SHA256"
+          echo "$RUNNER_TEMP/bin" >>"$GITHUB_PATH"
+
+      - name: Log in to ghcr.io
+        env:
+          TOKEN: ${{ github.token }}
+        run: echo "$TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+
+      # Anonymous pulls from Docker Hub have a low rate limit, which a run that
+      # creates many SBOMs can exceed.
+      - name: Log in to Docker Hub
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          if [[ -z $DOCKERHUB_TOKEN ]]; then
+            echo "No Docker Hub credentials, pulls are anonymous"
+            exit 0
+          fi
+          echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+
+      - name: Restore previous results
+        run: |
+          mkdir -p "$SBOM_DATA_DIR"
+          status=0
+          git ls-remote --exit-code --heads origin "$SBOM_DATA_BRANCH" >/dev/null || status=$?
+          case $status in
+            0)
+              git fetch --depth=1 origin "$SBOM_DATA_BRANCH"
+              git archive FETCH_HEAD | tar -x -C "$SBOM_DATA_DIR"
+              ;;
+            2) echo "No $SBOM_DATA_BRANCH branch yet, first run" ;;
+            *) exit "$status" ;;
+          esac
+
+      - name: Generate SBOMs
+        env:
+          COMPOSE_FILES: ${{ inputs.compose-files }}
+          SBOM_EXCLUDE: ${{ inputs.exclude }}
+          SBOM_EXTRA_IMAGES: ${{ inputs.extra-images }}
+          SBOM_PLATFORM: ${{ inputs.platform }}
+        run: |
+          # Word splitting of COMPOSE_FILES is intended.
+          # shellcheck disable=SC2086
+          "$SBOM_TOOL_DIR/sbom.sh" generate $COMPOSE_FILES
+
+      # Runs after a failed generate step as well, with the SBOMs that exist.
+      - name: Scan SBOMs
+        id: scan
+        if: ${{ !cancelled() }}
+        env:
+          SBOM_VEX: ${{ inputs.vex-file }}
+        run: |
+          "$SBOM_TOOL_DIR/sbom.sh" scan
+          cat "$SBOM_DATA_DIR/summary.md" >>"$GITHUB_STEP_SUMMARY"
+          echo "scanned=true" >>"$GITHUB_OUTPUT"
+          echo "new=$(wc -l <"$SBOM_DATA_DIR/new.jsonl" | tr -d ' ')" >>"$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: ${{ !cancelled() && steps.scan.outputs.scanned == 'true' }}
+        with:
+          name: sbom-data
+          path: ${{ env.SBOM_DATA_DIR }}
+          retention-days: 7
+
+  publish:
+    needs: scan
+    if: ${{ !cancelled() && needs.scan.outputs.scanned == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      SBOM_DATA_DIR: ${{ github.workspace }}/sbom-data
+      SBOM_TOOL_DIR: ${{ github.workspace }}/.compose-sbom
+    steps:
+      # The calling repository. The token stays in .git/config to push to the
+      # data branch.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: true # zizmor: ignore[artipacked]
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          path: .compose-sbom
+          persist-credentials: false
+
+      - name: Prepare data branch
+        run: |
+          status=0
+          git ls-remote --exit-code --heads origin "$SBOM_DATA_BRANCH" >/dev/null || status=$?
+          case $status in
+            0)
+              git fetch --depth=1 origin "$SBOM_DATA_BRANCH"
+              git worktree add --detach "$SBOM_DATA_DIR" FETCH_HEAD
+              ;;
+            2) git worktree add --orphan -b "$SBOM_DATA_BRANCH" "$SBOM_DATA_DIR" ;;
+            *) exit "$status" ;;
+          esac
+          find "$SBOM_DATA_DIR" -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: sbom-data
+          path: ${{ env.SBOM_DATA_DIR }}
+
+      - name: Commit results
+        working-directory: ${{ env.SBOM_DATA_DIR }}
+        run: |
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes"
+            exit 0
+          fi
+          git -c user.name="github-actions[bot]" \
+            -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -q -m "Scan results of $(date -u +%F)"
+          git push origin "HEAD:refs/heads/$SBOM_DATA_BRANCH"
+
+      # Optional. grafana-dashboard.json reads these points.
+      - name: Write to InfluxDB
+        if: ${{ !cancelled() && inputs.influx-url != '' }}
+        env:
+          SBOM_INFLUX_URL: ${{ inputs.influx-url }}
+          SBOM_INFLUX_ORG: ${{ inputs.influx-org }}
+          SBOM_INFLUX_BUCKET: ${{ inputs.influx-bucket }}
+          SBOM_INFLUX_TOKEN: ${{ secrets.SBOM_INFLUX_TOKEN }}
+        run: '"$SBOM_TOOL_DIR/sbom.sh" influx'
+
+      - name: Send webhook
+        if: ${{ !cancelled() && needs.scan.outputs.new != '0' }}
+        env:
+          SBOM_ALERT_WEBHOOK_URL: ${{ secrets.SBOM_ALERT_WEBHOOK_URL }}
+          SBOM_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: '"$SBOM_TOOL_DIR/sbom.sh" notify'
+
+      - name: Fail on new alerts
+        if: ${{ !cancelled() && needs.scan.outputs.new != '0' }}
+        env:
+          NEW: ${{ needs.scan.outputs.new }}
+        run: |
+          echo "::error::$NEW new alerts, see the summary of the scan job"
+          jq -r '"\(.image) \(.id) \(.severity) \(.package) \(.version)"' "$SBOM_DATA_DIR/new.jsonl"
+          exit 1
