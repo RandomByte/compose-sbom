@@ -171,13 +171,16 @@ EXTRACT='
 # and one of its products is the image. A product with a tag or digest
 # matches only that reference, one without matches every tag of the image.
 # Subcomponents, if present, limit the statement to these packages, given
-# as package URL or plain name, each optionally with "@version". The last
-# matching statement in the document applies.
+# as package URL or plain name, each optionally with "@version". A product
+# or subcomponent without a string "@id" matches nothing. The last matching
+# statement in the document applies.
 # shellcheck disable=SC2016
 VEX_APPLY='
 def ids: if type == "string" then [.] else [.name, ."@id"] + (.aliases // []) end | map(select(. != null));
+def id: (."@id"? | strings) // "";
+def components: (.subcomponents? // []) | if type == "array" then .[] else . end;
 def repo: sub("@.*$"; "") | sub(":[^/]*$"; "");
-def image_match($img): . == $img or ((split("/") | last | test("[:@]") | not) and . == ($img | repo));
+def image_match($img): . == $img or (. != "" and (split("/") | last | test("[:@]") | not) and . == ($img | repo));
 # A leading "@" belongs to the name (npm scope). A package URL also matches
 # by its last path segment, which drops a namespace such as "debian/".
 def pkg_match($f): startswith("pkg:") as $purl
@@ -185,7 +188,7 @@ def pkg_match($f): startswith("pkg:") as $purl
 	| capture("^(?<name>@?[^@]+)(@(?<version>.+))?$") as $nv
 	| ($nv.name == $f.package or ($purl and ($nv.name | split("/") | last) == $f.package))
 		and ($nv.version == null or $nv.version == $f.version);
-[$vex.statements[]? | {ids: (.vulnerability | ids), products: [.products[]? | {image: ."@id", subs: [.subcomponents[]?."@id"]}], status, justification: (.justification // "")}] as $statements
+[$vex.statements[]? | {ids: (.vulnerability | ids), products: [.products[]? | {image: id, subs: [components | id]}], status, justification: (.justification // "")}] as $statements
 | . as $f
 | ([$statements[] | select(any(.ids[]; . == $f.id or IN($f.aliases[])) and any(.products[]; (.image | image_match($f.image)) and (.subs == [] or any(.subs[]; pkg_match($f)))))] | last) as $st
 | if $st then . + {vex: $st.status, vex_justification: $st.justification} else . end
@@ -224,11 +227,13 @@ alert_args() {
 }
 
 cmd_scan() {
-	local image file tmp vex='{}'
+	local image file tmp n vex='{}'
 	[[ -f $DATA/index.json ]] || die "$DATA/index.json is missing, run generate first"
 	alert_args
 	if [[ -f $VEX ]]; then
 		vex=$(jq -c . "$VEX") || die "$VEX is not valid JSON"
+		n=$(jq '[.statements[]? | .products[]? | ., ((.subcomponents? // []) | if type == "array" then .[] else . end) | select((."@id"? // null) | type != "string")] | length' <<<"$vex")
+		((n == 0)) || echo "warning: $VEX has $n products or subcomponents without a string \"@id\", they match nothing" >&2
 	fi
 	tmp=$(mktemp)
 	trap 'rm -f "$tmp"' RETURN

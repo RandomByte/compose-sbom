@@ -78,6 +78,7 @@ A `not_affected` statement needs exactly one justification. The evidence column 
    - Write a package as `name` or as `name@version`. Copy name and version from the `package` and `version` fields of `findings.jsonl`, for example `golang.org/x/net@v0.59.0` or `@langchain/redis@1.0.0`. The name must equal the full `package` field. A package with a version covers only that version.
    - A package URL such as `pkg:deb/debian/nginx@1.22.1-9+deb12u10` also works, but only with the version as plain text. The package URLs in the SBOM files percent-encode the version (`%2B` for `+`, `%3A` for `:`) and the npm scope (`%40` for `@`), and in that form they do not match. A package URL also matches a package named like its last path segment, so `pkg:golang/golang.org/x/net` also covers a package `net`. Prefer the plain `name@version` form.
    - Without `subcomponents`, the statement covers every package of the image that has this vulnerability.
+4. Every product and subcomponent has a string `@id`. `sbom.sh` does not read `identifiers`. A product or subcomponent without `@id` matches nothing, and `sbom.sh scan` prints a warning.
 
 If several statements cover a finding, the last statement in the document applies. `sbom.sh` does not check `status_notes`, `action_statement` or the timestamps.
 
