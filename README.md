@@ -123,7 +123,7 @@ A statement covers a finding if all of these conditions apply:
 
 - `vulnerability.name` or one of `vulnerability.aliases` equals the ID or an alias of the finding. grype reports some vulnerabilities with a GHSA ID and the CVE as alias, so the CVE ID is sufficient.
 - One of the `products` is the image, written as in the compose file. A product with a tag or digest covers only that reference. A product without a tag or digest covers every tag of the image.
-- If the product has `subcomponents`, the package of the finding is one of them. Write a package as a package URL (`pkg:deb/debian/nginx@1.22.1-9+deb12u10`) or as a plain name (`nginx`). A package with a version covers only that version, so an update of the package needs a new decision.
+- If the product has `subcomponents`, the package of the finding is one of them. Write a package as a package URL (`pkg:deb/debian/nginx@1.22.1-9+deb12u10`) or as a plain name with the full package name (`nginx`, `golang.org/x/net`, `@langchain/redis`). A package URL also matches a package named like its last path segment. A package with a version covers only that version, so an update of the package needs a new decision.
 
 If several statements cover a finding, the last statement in the document applies.
 

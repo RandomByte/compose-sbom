@@ -178,8 +178,13 @@ VEX_APPLY='
 def ids: if type == "string" then [.] else [.name, ."@id"] + (.aliases // []) end | map(select(. != null));
 def repo: sub("@.*$"; "") | sub(":[^/]*$"; "");
 def image_match($img): . == $img or ((split("/") | last | test("[:@]") | not) and . == ($img | repo));
-def pkg_match($f): (if startswith("pkg:") then sub("^pkg:[^/]+/"; "") | sub("[?#].*$"; "") else . end) | split("@") as $nv
-	| ($nv[0] | split("/") | last) == $f.package and ($nv[1] == null or $nv[1] == $f.version);
+# A leading "@" belongs to the name (npm scope). A package URL also matches
+# by its last path segment, which drops a namespace such as "debian/".
+def pkg_match($f): startswith("pkg:") as $purl
+	| (if $purl then sub("^pkg:[^/]+/"; "") | sub("[?#].*$"; "") else . end)
+	| capture("^(?<name>@?[^@]+)(@(?<version>.+))?$") as $nv
+	| ($nv.name == $f.package or ($purl and ($nv.name | split("/") | last) == $f.package))
+		and ($nv.version == null or $nv.version == $f.version);
 [$vex.statements[]? | {ids: (.vulnerability | ids), products: [.products[]? | {image: ."@id", subs: [.subcomponents[]?."@id"]}], status, justification: (.justification // "")}] as $statements
 | . as $f
 | ([$statements[] | select(any(.ids[]; . == $f.id or IN($f.aliases[])) and any(.products[]; (.image | image_match($f.image)) and (.subs == [] or any(.subs[]; pkg_match($f)))))] | last) as $st

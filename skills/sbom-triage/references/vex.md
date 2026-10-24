@@ -75,9 +75,8 @@ A `not_affected` statement needs exactly one justification. The evidence column 
    - A product without a tag or digest covers every tag of the image, for example `postgres` covers `postgres:18.6` and `postgres:18.7`.
    - The comparison is a string comparison against the image reference as written in the compose file. `postgres`, `docker.io/postgres` and `docker.io/library/postgres` are three different products. Copy the reference from the `image` field of `findings.jsonl`.
 3. If the product has `subcomponents`, the `package` of the finding is one of them:
-   - Write a package as `name` or as `name@version`. Copy name and version from the `package` and `version` fields of `findings.jsonl`. A package with a version covers only that version.
-   - A package URL such as `pkg:deb/debian/nginx@1.22.1-9+deb12u10` also works, but only with the version as plain text. The package URLs in the SBOM files percent-encode the version (`%2B` for `+`, `%3A` for `:`), and in that form the version does not match. Prefer the plain `name@version` form.
-   - Packages whose name starts with `@`, for example npm packages such as `@langchain/redis`, do not match as subcomponents in any form. For these, leave out `subcomponents` and limit the statement by the tag of the image instead.
+   - Write a package as `name` or as `name@version`. Copy name and version from the `package` and `version` fields of `findings.jsonl`, for example `golang.org/x/net@v0.59.0` or `@langchain/redis@1.0.0`. The name must equal the full `package` field. A package with a version covers only that version.
+   - A package URL such as `pkg:deb/debian/nginx@1.22.1-9+deb12u10` also works, but only with the version as plain text. The package URLs in the SBOM files percent-encode the version (`%2B` for `+`, `%3A` for `:`) and the npm scope (`%40` for `@`), and in that form they do not match. A package URL also matches a package named like its last path segment, so `pkg:golang/golang.org/x/net` also covers a package `net`. Prefer the plain `name@version` form.
    - Without `subcomponents`, the statement covers every package of the image that has this vulnerability.
 
 If several statements cover a finding, the last statement in the document applies. `sbom.sh` does not check `status_notes`, `action_statement` or the timestamps.
