@@ -3,9 +3,9 @@ name: Test
 # Runs tests/run.sh and the linters from AGENTS.md.
 
 on:
-  push:
-    branches: [main]
   pull_request:
+  # release.yml calls this workflow for pushes to main.
+  workflow_call:
 
 permissions: {}
 

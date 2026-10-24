@@ -251,11 +251,13 @@ jq -c 'select(.severity == "critical" and .fix != "")' sbom/data/findings.jsonl
 
 ## Tests
 
-`tests/run.sh` tests `sbom.sh` with jq only, without syft, grype or Docker. `.github/workflows/test.yml` runs it with the linters on every pull request. AGENTS.md describes the structure of the tests.
+`tests/run.sh` tests `sbom.sh` with jq only, without syft, grype or Docker. `.github/workflows/test.yml` runs it with the linters on every pull request and every push to `main`. AGENTS.md describes the structure of the tests.
 
 ## Releases
 
-Each release is a tag `vX.Y.Z` on `main`. Calling repositories pin the commit SHA of the tag. The reusable workflow checks out this repository at the same commit (`job.workflow_sha`), so the workflow and `sbom.sh` always match.
+Each release is a tag `vX.Y.Z` on `main`. `.github/workflows/release.yml` creates it for every push to `main` that passes the tests, and moves the tags `vX.Y` and `vX` to the same commit. Calling repositories pin the commit SHA of the tag. The reusable workflow checks out this repository at the same commit (`job.workflow_sha`), so the workflow and `sbom.sh` always match.
+
+Commit subjects in the style of Conventional Commits select the bump: `feat!:` or `feat(scope)!:` gives a major release, `feat:` or `feat(scope):` a minor release, and `chore`, `docs` and `ci` give no release. Every other subject gives a patch release. The highest bump of all commits since the last version tag wins, and merge commits do not count.
 
 ## Updating syft and grype
 

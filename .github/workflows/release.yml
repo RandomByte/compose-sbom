@@ -1,0 +1,112 @@
+name: Release
+
+# Tags every push to main that passes the tests with the next version
+# vX.Y.Z. The commit subjects since the last version tag select the bump:
+#
+#   feat!: ..., feat(scope)!: ...   major
+#   feat: ..., feat(scope): ...     minor
+#   chore, docs, ci                 no release
+#   everything else                 patch
+#
+# The highest bump of all commits wins. Merge commits do not count. The tags
+# vX.Y and vX move to the newest release of their line.
+
+on:
+  push:
+    branches: [main]
+
+permissions: {}
+
+# Runs one push after the other, so that two runs cannot compute the same
+# version. A queued run replaces an older queued run, and the newer run
+# includes the commits of the older one.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  # This workflow runs only in this repository, so "./" always resolves to
+  # the pushed commit.
+  test:
+    uses: ./.github/workflows/test.yml # zizmor: ignore[self-repository]
+    permissions:
+      contents: read
+
+  tag:
+    needs: test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Compute version
+        id: version
+        run: |
+          if git tag --points-at HEAD | grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "HEAD already has a version tag."
+            exit 0
+          fi
+
+          last=$(git describe --tags --abbrev=0 --match 'v[0-9]*.[0-9]*.[0-9]*' 2>/dev/null || true)
+          if [[ -n $last ]]; then
+            range=$last..HEAD
+          else
+            last=v0.0.0
+            range=HEAD
+          fi
+
+          # The type is the leading lowercase word, as in "feat", "feat(scope)!"
+          # or "chore:". The rank is 0 for no release, 1 patch, 2 minor, 3 major.
+          re='^([a-z]+)(\([^)]*\))?(!?)'
+          rank=0
+          while IFS= read -r subject; do
+            type='' bang=''
+            if [[ $subject =~ $re ]]; then
+              type=${BASH_REMATCH[1]} bang=${BASH_REMATCH[3]}
+            fi
+            case $type in
+            chore | docs | ci) r=0 ;;
+            feat) if [[ $bang == '!' ]]; then r=3; else r=2; fi ;;
+            *) r=1 ;;
+            esac
+            ((r > rank)) && rank=$r
+            echo "$r $subject"
+          done < <(git log --no-merges --format=%s "$range")
+
+          if ((rank == 0)); then
+            echo "No commit since $last needs a release."
+            exit 0
+          fi
+
+          IFS=. read -r major minor patch <<<"${last#v}"
+          case $rank in
+          3) version=v$((major + 1)).0.0 ;;
+          2) version=v$major.$((minor + 1)).0 ;;
+          1) version=v$major.$minor.$((patch + 1)) ;;
+          esac
+          echo "Next version after $last: $version"
+          echo "version=$version" >>"$GITHUB_OUTPUT"
+
+      # Creates vX.Y.Z and moves vX.Y and vX to the same commit. The API call
+      # fails if vX.Y.Z exists, so a version tag never moves.
+      - name: Create tags
+        if: steps.version.outputs.version != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          refs=repos/$GITHUB_REPOSITORY/git/refs
+          gh api "$refs" -f "ref=refs/tags/$VERSION" -f "sha=$GITHUB_SHA" >/dev/null
+          for tag in "${VERSION%.*}" "${VERSION%%.*}"; do
+            if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+              gh api -X PATCH "$refs/tags/$tag" -f "sha=$GITHUB_SHA" -F force=true >/dev/null
+            else
+              gh api "$refs" -f "ref=refs/tags/$tag" -f "sha=$GITHUB_SHA" >/dev/null
+            fi
+          done
+          echo "Tagged $GITHUB_SHA as \`$VERSION\`, \`${VERSION%.*}\` and \`${VERSION%%.*}\`." >>"$GITHUB_STEP_SUMMARY"

@@ -10,7 +10,8 @@ There is no build step. The repository has these artifacts:
 
 - `sbom.sh`: all logic, as subcommands `generate`, `scan`, `notify`, `influx`, `find`.
 - `.github/workflows/scan.yml`: the reusable workflow that calls `sbom.sh`.
-- `.github/workflows/test.yml`: runs the tests and the linters on pushes to `main` and on pull requests.
+- `.github/workflows/test.yml`: runs the tests and the linters on pull requests and, through `release.yml`, on pushes to `main`.
+- `.github/workflows/release.yml`: tags each push to `main` that passes the tests with the next version, see "Releases".
 - `tests/`: the test suite for `sbom.sh`, see "Tests".
 - `grafana-dashboard.json`: Flux queries over the InfluxDB points that `sbom.sh influx` writes.
 - `skills/sbom-triage/`: an agent skill that calling repositories copy, to triage findings and write VEX statements. It must work without this repository, so it repeats the data branch layout, the `findings.jsonl` schema and the VEX matching rules.
@@ -80,4 +81,6 @@ Key behaviors that span several functions:
 
 ## Releases
 
-A release is a tag `vX.Y.Z` on `main`. Calling repositories pin the commit SHA of the tag.
+A release is a tag `vX.Y.Z` on `main`. Calling repositories pin the commit SHA of the tag. `.github/workflows/release.yml` creates the tag after the tests pass on a push to `main`, and moves the tags `vX.Y` and `vX` to the same commit. Do not create version tags by hand.
+
+Commit subjects in the style of Conventional Commits select the bump: `feat!:` or `feat(scope)!:` gives a major release, `feat:` or `feat(scope):` a minor release, and `chore`, `docs` and `ci` give no release. Every other subject gives a patch release. The highest bump of all commits since the last version tag wins, and merge commits do not count. Write commit subjects accordingly.
